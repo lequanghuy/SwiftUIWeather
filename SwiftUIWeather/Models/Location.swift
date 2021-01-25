@@ -9,6 +9,7 @@ import Foundation
 import RealmSwift
 
 class Location: Object {
+    //@objc dynamic var id : String?
     @objc dynamic var cityName: String?
     @objc dynamic var currentDate: String?
     @objc dynamic var temperature: String?

@@ -33,7 +33,7 @@ struct Hourly: Decodable {
 
 }
 
-struct Weather: Decodable {
+struct Weather: Decodable, Identifiable {
     let id: Int
     let description: String
     let icon: String

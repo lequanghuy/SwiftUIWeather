@@ -6,17 +6,21 @@
 //
 
 import SwiftUI
+import RealmSwift
 
 struct ContentView: View {
     @State var showLocationList = false
+    @ObservedObject var weatherStore = WeatherStore()
+    
     var body: some View {
-        ScrollView {
+        return ScrollView {
             ZStack {
                 Color.black
                     .frame(width: screen.width, height: screen.height)
                 VStack(spacing: 0.0) {
-                    ForEach(0 ..< 5) { item in
-                        LocationCell()
+                    LocationCell(dt: .constant("a"), temp: .constant("a"), cityName: .constant("a"))
+                    ForEach(weatherStore.currentWeatherViewModel) { item in
+                        LocationCell(dt: .constant(item.dt), temp: .constant(item.temp), cityName: .constant(item.name!))
                     }
                     
                     HStack {
@@ -58,7 +62,10 @@ struct ContentView: View {
             }
         }
         .background(Color.black)
-        .edgesIgnoringSafeArea(.all)
+        .onAppear(perform: {
+
+        })
+        
     }
 }
 
@@ -69,20 +76,22 @@ struct ContentView_Previews: PreviewProvider {
 }
 
 struct LocationCell: View {
-    
+    @Binding var dt: String
+    @Binding var temp: String
+    @Binding var cityName: String
     
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 8.0) {
-                Text("21:31")
+                Text(dt)
                     .font(.subheadline)
                     .foregroundColor(.white)
-                Text("Hà Nội")
+                Text(cityName)
                     .font(.title2)
                     .foregroundColor(.white)
             }
             Spacer()
-            Text("17°")
+            Text(temp)
                 .font(.system(size: 40, weight: .medium))
                 .foregroundColor(.white)
         }

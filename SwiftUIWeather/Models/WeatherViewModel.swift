@@ -12,7 +12,7 @@ struct WeatherViewModel {
     let cityName: String
     let description: String
     let temp: Double
-    let hourly: [Hourly]
+    let hourly: [HourlyIdentify]
     let sunrise: Int
     let sunset: Int
     let humidity: Int
@@ -22,4 +22,11 @@ struct WeatherViewModel {
     let visibility: Int
     let uvi: Double
     let dt: Int
+}
+
+struct HourlyIdentify: Identifiable {
+    var id: String
+    let dt: Int
+    let temp: Double
+    let weather: [Weather]
 }

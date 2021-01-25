@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import RealmSwift
 
 struct WeatherDetailView: View {
     @Binding var show: Bool
@@ -15,53 +16,72 @@ struct WeatherDetailView: View {
     
     var body: some View {
         weatherStore.getWeatherDetail(location: self.location)
-        
         return VStack {
-            ScrollView {
-                //Present View
-                VStack(spacing: 4.0) {
-                    Text("Ha Noi")
-                        .font(.title)
-                    Text("Mostly Cloud")
-                    Text("3°").font(.system(size: 60))
-                }
-                .offset(y: 32)
-                .frame(maxWidth: .infinity)
-                .frame(height: 280)
-                
-                //Scroll hourly view
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8.0) {
-                        ForEach(0 ..< 10) { item in
-                            HourlyView()
+            if let weather = weatherStore.weather {
+                ScrollView {
+                    HStack {
+                        Button(action: { show.toggle() }, label: {
+                            Text("Cancel")
+                        })
+                        Spacer()
+                        Button(action: {
+                            weatherStore.saveLocation(location: location, weather: weather)
+                        }, label: {
+                            Text("Add")
+                    })
+                    }
+                    .padding()
+                    //Present View
+                    VStack(spacing: 4.0) {
+                        Text("\(weather.cityName)")
+                            .font(.title)
+                        Text(weather.description)
+                        Text(String(format: "%.0f", weather.temp) + "°").font(.system(size: 60))
+                    }
+                    .offset(y: 32)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 280)
+                    
+                    //Scroll hourly view
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8.0) {
+                            ForEach(weather.hourly) { item in
+                                HourlyView(
+                                    dt: .constant(item.dt.timeStampToString(format: "HH", timezone: weather.timeZone)),
+                                    icon: .constant(item.weather[0].icon),
+                                    temp: .constant("\(String(format: "%.0f", item.temp))°")
+                                )
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 8)
+                    }
+                    
+                    //Group condition view
+                    HStack {
+                        VStack(alignment: .leading, spacing: 16.0) {
+                            ConditionView(conditionName: .constant("Sunrise"), conditionValue: .constant(weather.sunrise.timeStampToString(format: "HH:mm", timezone: weather.timeZone)))
+                            ConditionView(conditionName: .constant("Humidity"), conditionValue: .constant("\(weather.humidity) %"))
+                            ConditionView(conditionName: .constant("Feel"), conditionValue: .constant(String(format: "%.0f", weather.feels_like) + "°"))
+                            ConditionView(conditionName: .constant("Visibility"), conditionValue: .constant("\(String(format: "%.1f", Double(weather.visibility) / Double(1000))) km"))
                         }
                         Spacer()
+                        VStack(alignment: .leading, spacing: 16.0) {
+                            ConditionView(conditionName: .constant("Sunset"), conditionValue: .constant(weather.sunset.timeStampToString(format: "HH:mm", timezone: weather.timeZone)))
+                            ConditionView(conditionName: .constant("Wind"), conditionValue: .constant("\(weather.wind_speed) km/h"))
+                            ConditionView(conditionName: .constant("Pressure"), conditionValue: .constant("\(weather.pressure) hPa"))
+                            ConditionView(conditionName: .constant("UV"), conditionValue: .constant("\(weather.uvi)"))
+                        }
+                        .offset(x: -48)
                     }
-                    .padding(.horizontal, 8)
-                }
-                
-                //Group condition view
-                HStack {
-                    VStack {
-//                        ConditionView(conditionName: .constant("Sunset"), conditionValue: .constant(String(weatherDetail!.sunset)))
-//                        ConditionView(conditionName: .constant("Sunset"), conditionValue: .constant(String(weatherDetail!.sunset)))
-                        ConditionView(conditionName: .constant("Sunset"), conditionValue: .constant(String(weatherStore.weather!.sunset)))
-                    }
+                    .padding()
+                    .offset(y: 16)
+                    
                     Spacer()
-                    VStack {
-//                        ConditionView(conditionName: .constant("Sunset"), conditionValue: .constant(String(weatherDetail!.sunset)))
-//                        ConditionView(conditionName: .constant("Sunset"), conditionValue: .constant(String(weatherDetail!.sunset)))
-                    }
-                    .offset(x: -48)
                 }
-                .padding()
-                .offset(y: 16)
-                
-                Spacer()
+                .background(Color(#colorLiteral(red: 0.1411764771, green: 0.3960784376, blue: 0.5647059083, alpha: 1)))
+                .foregroundColor(.white)
             }
-            .background(Color(#colorLiteral(red: 0.1411764771, green: 0.3960784376, blue: 0.5647059083, alpha: 1)))
-            .foregroundColor(.white)
-            
             //MARK: - Bottom View
             BottomView()
         }
@@ -76,11 +96,14 @@ struct WeatherDetailView_Previews: PreviewProvider {
 }
 
 struct HourlyView: View {
+    @Binding var dt: String
+    @Binding var icon: String
+    @Binding var temp: String
     var body: some View {
         VStack(spacing: 4.0) {
-            Text("04")
-            Image(systemName: "cloud.drizzle.fill")
-            Text("3°")
+            Text(dt)
+            Image(icon).resizable().aspectRatio(contentMode: .fit).frame(width: 20, height: 20)
+            Text(temp)
         }
         .frame(width: 40)
     }
