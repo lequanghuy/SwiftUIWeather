@@ -23,3 +23,14 @@ struct RootView_Previews: PreviewProvider {
 }
 
 let screen = UIScreen.main.bounds
+
+struct ShowingSheetKey: EnvironmentKey {
+    static let defaultValue: Binding<Bool>? = nil
+}
+
+extension EnvironmentValues {
+    var showingSheet: Binding<Bool>? {
+        get { self[ShowingSheetKey.self] }
+        set { self[ShowingSheetKey.self] = newValue }
+    }
+}

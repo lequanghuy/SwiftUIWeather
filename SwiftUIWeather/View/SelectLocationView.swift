@@ -15,13 +15,13 @@ struct SelectLocationView: View {
     @State var location: Location?
     @State var showWeatherDetail = false
     
+    
 //
 //    func searchCity(cityName: String?) {
 //        store.getCities(cityName: cityName)
 //    }
     
     var body: some View {
-        
         let binding = Binding<String>(get: {
                     self.text ?? ""
                 }, set: {
@@ -68,7 +68,7 @@ struct SelectLocationView: View {
                         .foregroundColor(.blue)
                 })
                 .sheet(isPresented: $showWeatherDetail, content: {
-                    WeatherDetailView(show: $showWeatherDetail, location: $location)
+                    WeatherDetailView(show: $showWeatherDetail, location: $location, fromMainView: .constant(false))
                 })
             }
             .id(UUID())

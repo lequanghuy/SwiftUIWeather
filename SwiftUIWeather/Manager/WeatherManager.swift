@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import RealmSwift
 
 struct WeatherManager {
     let weatherUrl = "https://api.openweathermap.org/data/2.5/onecall?appid=0b8564ff8bdb9f0b78a854f11229727c&exclude=minutely,daily"
@@ -13,6 +14,11 @@ struct WeatherManager {
     let currentWeatherUrl = "https://api.openweathermap.org/data/2.5/group?appid=0b8564ff8bdb9f0b78a854f11229727c"
     
     var location: Location?
+    
+    var locationRef: ThreadSafeReference<Location>? {
+        guard let location = self.location, location.realm != nil else { return nil }
+        return ThreadSafeReference(to: location)
+    }
     
     //MARK: - Get detail weather
     mutating func fetchWeather(location: Location?,  completion: @escaping (WeatherViewModel) -> Void,  exception: @escaping (Error) -> Void) {
@@ -33,13 +39,17 @@ struct WeatherManager {
                     exception(err)
                     return
                 }
-                if let safeData = data {
-                    if let weather = parseJsonDetail(safeData) {
-                        DispatchQueue.main.async {
-                            completion(weather)
+                
+                
+                    if let safeData = data {
+                        // dang o background <- thread nay la thread của NSURLSession, không phair main thread
+                        if let weather = parseJsonDetail(safeData) {
+                            DispatchQueue.main.async {
+                                completion(weather)
+                            }
                         }
                     }
-                }
+               
             }
             task.resume()
             
@@ -49,9 +59,19 @@ struct WeatherManager {
     func parseJsonDetail(_ weatherData: Data) -> WeatherViewModel? {
         let decoder = JSONDecoder()
         do {
+            let realm = try Realm()
+            var safeLocation: Location?
+            autoreleasepool {
+                // check neu object da dc manage hay chua (da dc save vao db chua)
+                if let ref = self.locationRef, let location = realm.resolve(ref) { // Neu da dc manage thi phai dung ThreadSafeReference (https://realm.io/docs/swift/latest/#threading)
+                    safeLocation = location
+                } else {
+                    safeLocation = self.location
+                }
+            }
             let decodedData = try decoder.decode(WeatherData.self, from: weatherData)
             let timeZone = decodedData.timezone
-            let cityName = self.location?.cityName ?? decodedData.timezone
+            let cityName = safeLocation?.cityName ?? decodedData.current.weather[0].description // <- self.location tu main thread chay vao day
             let description = decodedData.current.weather[0].description
             let temp = decodedData.current.temp
             let sunrise = decodedData.current.sunrise
@@ -109,7 +129,7 @@ struct WeatherManager {
         do {
             let decodedData = try decoder.decode(LocationData.self, from: data)
             for item in decodedData.list {
-                let weatherModel = CurrentWeatherViewModel(id: UUID().uuidString, dt: String(item.dt), temp: String(format: "%.0f", item.main.temp), cityId: String(item.id))
+                let weatherModel = CurrentWeatherViewModel(id: UUID().uuidString, dt: String(item.dt), temp: String(format: "%.0f", item.main.temp), cityId: String(item.id), name: nil, lat: "", lon: "")
                 result.append(weatherModel)
             }
             return result
@@ -118,7 +138,5 @@ struct WeatherManager {
             return nil
         }
     }
-    
-    
     
 }

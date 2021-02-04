@@ -9,29 +9,40 @@ import SwiftUI
 import RealmSwift
 
 struct WeatherDetailView: View {
+    @Environment(\.showingSheet) var showingSheet
     @Binding var show: Bool
     @Binding var location: Location?
+    @State var showProgress: Bool = true
+    @Binding var fromMainView: Bool
+    
     
     @ObservedObject var weatherStore = WeatherStore()
     
     var body: some View {
-        weatherStore.getWeatherDetail(location: self.location)
         return VStack {
             if let weather = weatherStore.weather {
                 ScrollView {
                     HStack {
-                        Button(action: { show.toggle() }, label: {
-                            Text("Cancel")
-                        })
+                        if !weatherStore.isHiddenCancel{
+                            Button(action: { show.toggle() }, label: {
+                                Text("Cancel")
+                            })
+                        }
+                        
                         Spacer()
-                        Button(action: {
-                            weatherStore.saveLocation(location: location, weather: weather)
-                        }, label: {
-                            Text("Add")
-                    })
+                        
+                        if !weatherStore.isHiddenAdd {
+                            Button(action: {
+                                weatherStore.saveLocation(location: location, weather: weather)
+                                self.showingSheet?.wrappedValue = false
+                                show.toggle()
+                            }, label: {
+                                Text("Add")
+                            })
+                        }
                     }
                     .padding()
-                    //Present View
+                    //MARK: - Present View
                     VStack(spacing: 4.0) {
                         Text("\(weather.cityName)")
                             .font(.title)
@@ -83,15 +94,19 @@ struct WeatherDetailView: View {
                 .foregroundColor(.white)
             }
             //MARK: - Bottom View
-            BottomView()
+            BottomView(show: $show)
         }
         .edgesIgnoringSafeArea(.all)
+        .onAppear(perform: {
+            weatherStore.getWeatherDetail(location: self.location)
+            weatherStore.checkHiddenButton(location: location, fromMainView: fromMainView)
+        })
     }
 }
 
 struct WeatherDetailView_Previews: PreviewProvider {
     static var previews: some View {
-        WeatherDetailView(show: .constant(true), location: .constant(Location()))
+        WeatherDetailView(show: .constant(true), location: .constant(Location()), fromMainView: .constant(true))
     }
 }
 
@@ -123,6 +138,7 @@ struct ConditionView: View {
 }
 
 struct BottomView: View {
+    @Binding var show: Bool
     var body: some View {
         HStack(alignment: .center) {
             Image("the-weather-channel")
@@ -131,10 +147,12 @@ struct BottomView: View {
                 .frame(width: 24, height: 24, alignment: .center)
                 .background(Color.white)
             Spacer()
-            Image(systemName: "list.bullet")
-                .foregroundColor(.white)
-                .font(.system(size: 20))
-                .offset(y: -4)
+            Button(action: { show.toggle() }) {
+                Image(systemName: "list.bullet")
+                    .foregroundColor(.white)
+                    .font(.system(size: 20))
+                    .offset(y: -4)
+            }
         }
         .padding(.horizontal, 24)
         .frame(maxWidth: .infinity)
