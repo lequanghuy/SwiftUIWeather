@@ -68,16 +68,34 @@ struct SelectLocationView: View {
                         .foregroundColor(.blue)
                 })
                 .sheet(isPresented: $showWeatherDetail, content: {
-                    WeatherDetailView(show: $showWeatherDetail, location: $location, fromMainView: .constant(false))
+                    WeatherDetailView(
+                        show: $showWeatherDetail,
+                        location: $location,
+                        fromMainView: .constant(false),
+                        didSaveLocation: {
+//                            show.toggle()ches
+                            window?.rootViewController?.dismiss(animated: true, completion: nil)
+                        })
                 })
             }
             .id(UUID())
+            .listRowBackground(Color(#colorLiteral(red: 0.1411764771, green: 0.3960784376, blue: 0.5647059083, alpha: 1)))
             Spacer()
         }
         .frame(maxWidth: .infinity)
         .background(BackgroundBlurView(style: .systemMaterialDark))
         .edgesIgnoringSafeArea(.bottom)
     }
+    
+    var window: UIWindow? {
+        guard let scene = UIApplication.shared.connectedScenes.first,
+              let windowSceneDelegate = scene.delegate as? UIWindowSceneDelegate,
+              let window = windowSceneDelegate.window else {
+            return nil
+        }
+        return window
+    }
+
 }
 
 struct SelectLocationView_Previews: PreviewProvider {

@@ -10,11 +10,9 @@ import RealmSwift
 
 struct ContentView: View {
     @State var showLocationList = false
-    @ObservedObject var weatherStore = WeatherStore()
+    @ObservedObject var weatherStore = WeatherStore.shared
     @State var active = false
-    @State var selectedIndex  = 0
     @State var items: [CurrentWeatherViewModel] = []
-    @State var location: Location?
     
     var body: some View {
         UITableView.appearance().backgroundColor = .black
@@ -22,16 +20,26 @@ struct ContentView: View {
             Color.black
                 .frame(width: screen.width, height: screen.height)
             if active {
-                WeatherDetailView(show: $active, location: .constant(weatherStore.convertViewModelToLocation(viewModel: items[selectedIndex])), fromMainView: .constant(true))
+                WeatherDetailView(
+                    show: $active,
+                    location: .constant(weatherStore.selectedLocation),
+                    fromMainView: .constant(true)
+                )
                     .frame(width: screen.width, height: screen.height)
                     .opacity(active ? 1 : 0)
             }
             else {
                 VStack(spacing: 0.0) {
                     List {
-                        ForEach(items.indices, id: \.self) { index in
+                        ForEach(items, id: \CurrentWeatherViewModel.id) { item in
                             GeometryReader { geo in
-                                LocationCell(dt: .constant(items[index].dt), temp: .constant(items[index].temp), cityName: .constant(items[index].name!), showWeatherDetail: $items[index].show, active: $active, selectedIndex: $selectedIndex, passingIndex: .constant(index))
+                                LocationCell(dt: .constant(item.dt),
+                                             temp: .constant(item.temp),
+                                             cityName: .constant(item.name!),
+                                             onTapped: {
+                                                self.weatherStore.selectLocation(with: item.id)
+                                             }
+                                )
                             }
                             .offset(x: -20)
                             .frame(width: screen.width)
@@ -81,8 +89,11 @@ struct ContentView: View {
                     Spacer()
                 }
                 .opacity(active ? 0 : 1)
-                .onAppear(perform: {
-                    items = weatherStore.currentWeatherViewModel
+                .onReceive(self.weatherStore.$currentWeatherViewModel, perform: { newItems in
+                    self.items = newItems
+                })
+                .onReceive(self.weatherStore.$selectedLocation, perform: { location in
+                    self.active = location != nil
                 })
             }
         }
@@ -102,10 +113,9 @@ struct LocationCell: View {
     @Binding var dt: String
     @Binding var temp: String
     @Binding var cityName: String
-    @Binding var showWeatherDetail: Bool
-    @Binding var active: Bool
-    @Binding var selectedIndex: Int
-    @Binding var passingIndex: Int
+    
+    var onTapped: (() -> Void)?
+
     var body: some View {
         HStack(spacing: 0)  {
             VStack(alignment: .leading, spacing: 8.0) {
@@ -124,12 +134,8 @@ struct LocationCell: View {
         .padding(8)
         .background(Color(#colorLiteral(red: 0.1411764771, green: 0.3960784376, blue: 0.5647059083, alpha: 1)))
         .onTapGesture(perform: {
-            showWeatherDetail.toggle()
-            active.toggle()
-            selectedIndex = passingIndex
-            
+            self.onTapped?()
         })
-        
     }
 }
 

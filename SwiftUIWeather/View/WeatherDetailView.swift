@@ -9,14 +9,14 @@ import SwiftUI
 import RealmSwift
 
 struct WeatherDetailView: View {
-    @Environment(\.showingSheet) var showingSheet
     @Binding var show: Bool
     @Binding var location: Location?
     @State var showProgress: Bool = true
     @Binding var fromMainView: Bool
     
+    var didSaveLocation: (() -> Void)?
     
-    @ObservedObject var weatherStore = WeatherStore()
+    @ObservedObject var weatherStore = WeatherStore.shared
     
     var body: some View {
         return VStack {
@@ -34,8 +34,8 @@ struct WeatherDetailView: View {
                         if !weatherStore.isHiddenAdd {
                             Button(action: {
                                 weatherStore.saveLocation(location: location, weather: weather)
-                                self.showingSheet?.wrappedValue = false
-                                show.toggle()
+//                                show.toggle()
+                                self.didSaveLocation?()
                             }, label: {
                                 Text("Add")
                             })
@@ -89,6 +89,46 @@ struct WeatherDetailView: View {
                     .offset(y: 16)
                     
                     Spacer()
+                }
+                .background(Color(#colorLiteral(red: 0.1411764771, green: 0.3960784376, blue: 0.5647059083, alpha: 1)))
+                .foregroundColor(.white)
+            }
+            else {
+                ScrollView {
+                    VStack(spacing: 4.0) {
+                        Text("--")
+                            .font(.title)
+                        Text("--")
+                        Text(String("--")).font(.system(size: 60))
+                    }
+                    .offset(y: 32)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 280)
+                    
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .padding(.horizontal, 8)
+                    
+                    HStack {
+                        VStack(alignment: .leading, spacing: 16.0) {
+                            ConditionView(conditionName: .constant("Sunrise"), conditionValue: .constant("--"))
+                            ConditionView(conditionName: .constant("Humidity"), conditionValue: .constant("--"))
+                            ConditionView(conditionName: .constant("Feel"), conditionValue: .constant(String("--")))
+                            ConditionView(conditionName: .constant("Visibility"), conditionValue: .constant("--"))
+                        }
+                        Spacer()
+                        VStack(alignment: .leading, spacing: 16.0) {
+                            ConditionView(conditionName: .constant("Sunset"), conditionValue: .constant("--"))
+                            ConditionView(conditionName: .constant("Wind"), conditionValue: .constant("--"))
+                            ConditionView(conditionName: .constant("Pressure"), conditionValue: .constant("--"))
+                            ConditionView(conditionName: .constant("UV"), conditionValue: .constant("--"))
+                        }
+                        .offset(x: -48)
+                    }
+                    .padding()
+                    .offset(y: 16)
+                    Spacer()
+                    
                 }
                 .background(Color(#colorLiteral(red: 0.1411764771, green: 0.3960784376, blue: 0.5647059083, alpha: 1)))
                 .foregroundColor(.white)
@@ -147,7 +187,10 @@ struct BottomView: View {
                 .frame(width: 24, height: 24, alignment: .center)
                 .background(Color.white)
             Spacer()
-            Button(action: { show.toggle() }) {
+            Button(action: {
+                WeatherStore.shared.selectedLocation = nil
+                    show.toggle()
+            }) {
                 Image(systemName: "list.bullet")
                     .foregroundColor(.white)
                     .font(.system(size: 20))

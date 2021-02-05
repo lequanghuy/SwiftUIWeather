@@ -10,18 +10,26 @@ import Foundation
 class CitiesStore: ObservableObject {
     @Published var cities: [City] = []
     
-    let citiesManager = CityManager()
+    let citiesManager = CityManager.shared
+    var searchString: String?
     
     init() {
     }
     
     func getCities(cityName: String?) {
-        citiesManager.fetchCities(cityName: cityName) { (cities) in
-            DispatchQueue.main.async {
-                self.cities = cities
+        self.searchString = cityName
+        citiesManager.fetchCities(cityName: cityName) { (result) in
+            guard self.searchString == cityName else {
+                return
             }
-        } exception: { (error) in
-            print("Fetching cities unsucessful, \(error)")
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let cities):
+                    self.cities = cities
+                case .failure(let error):
+                    print(error)
+                }
+            }
         }
     }
     

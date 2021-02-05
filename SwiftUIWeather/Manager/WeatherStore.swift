@@ -9,6 +9,7 @@ import Foundation
 import RealmSwift
 
 class WeatherStore: ObservableObject {
+    static let shared = WeatherStore()
     
     let realm = try! Realm()
     @Published var weather: WeatherViewModel?
@@ -16,7 +17,7 @@ class WeatherStore: ObservableObject {
     @Published var isHiddenAdd: Bool = false
     @Published var isHiddenCancel: Bool = false
     
-    var newWeather: CurrentWeatherViewModel?
+    @Published var selectedLocation: Location?
     
     var weatherManager = WeatherManager()
     
@@ -27,12 +28,13 @@ class WeatherStore: ObservableObject {
     private var observingToken: NotificationToken?
     
     init() {
-        reloadData()
+//        reloadData()
         self.observingToken = locations.observe { _ in
-            if let newWeather = self.newWeather {
-                self.currentWeatherViewModel.append(newWeather)
-                self.newWeather = nil
-            }
+            self.reloadData()
+//            if let newWeather = self.newWeather {
+//                self.currentWeatherViewModel.append(newWeather)
+//                self.newWeather = nil
+//            }
         }
         
         
@@ -51,15 +53,29 @@ class WeatherStore: ObservableObject {
     }
     
     func reloadData() {
-        for item in self.locations {
-            let weatherViewModel = CurrentWeatherViewModel(id: UUID().uuidString ,dt: Int(NSDate().timeIntervalSince1970).timeStampToString(format: "HH:mm", timezone: item.timeZone), temp: item.temperature!, cityId: item.cityId, name: item.cityName, lat: item.lat!, lon: item.lon!)
-            self.currentWeatherViewModel.append(weatherViewModel)
+        self.currentWeatherViewModel = self.locations.map { item in
+            CurrentWeatherViewModel(
+                id: item.cityId,
+                dt: Int(NSDate().timeIntervalSince1970).timeStampToString(format: "HH:mm", timezone: item.timeZone),
+                temp: item.temperature!,
+                cityId: item.cityId,
+                name: item.cityName,
+                lat: item.lat!,
+                lon: item.lon!)
         }
     }
     
     
     deinit {
         self.observingToken?.invalidate()
+    }
+
+    func selectLocation(with id: String) {
+        guard let location = self.locations.first(where: {$0.cityId == id }) else {
+            return
+        }
+
+        self.selectedLocation = Location(value: location)
     }
     
     func getWeatherDetail(location: Location?) {
@@ -116,7 +132,6 @@ class WeatherStore: ObservableObject {
             try realm.write {
                 realm.add(safeLocation!)
             }
-            newWeather = CurrentWeatherViewModel(id: UUID().uuidString ,dt: Int(NSDate().timeIntervalSince1970).timeStampToString(format: "HH:mm", timezone: safeLocation!.timeZone), temp: safeLocation!.temperature!, cityId: safeLocation!.cityId, name: safeLocation!.cityName, lat: safeLocation!.lat!, lon: safeLocation!.lon!)
         } catch {
             print("Error saving location: \(error)")
         }
@@ -128,7 +143,6 @@ class WeatherStore: ObservableObject {
         try! realm.write {
             realm.delete(safeLocation)
         }
-        currentWeatherViewModel.remove(at: index.first!)
         
     }
     
